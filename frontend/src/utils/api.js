@@ -1,48 +1,45 @@
 import axios from 'axios';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
-const api = axios.create({
-  baseURL: BASE_URL,
-  headers: { 'Content-Type': 'application/json' },
-  withCredentials: false,
-});
+const http = axios.create({ baseURL: BASE, headers: { 'Content-Type': 'application/json' } });
 
-api.interceptors.response.use(
-  res => res.data,
-  err => {
-    const message = err.response?.data?.error || err.message || 'Something went wrong';
-    return Promise.reject(new Error(message));
-  }
+http.interceptors.response.use(
+  r => r.data,
+  e => Promise.reject(new Error(e.response?.data?.error || e.message || 'Something went wrong'))
 );
 
 export const contactsApi = {
-  getAll: (params = {}) => api.get('/contacts.php', { params }),
-  create: (data) => api.post('/contacts.php', data),
-  update: (id, data) => api.put(`/contacts.php?id=${id}`, data),
-  delete: (id) => api.delete(`/contacts.php?id=${id}`),
+  getAll: (p = {}) => http.get('/contacts.php', { params: p }),
+  create: (d) => http.post('/contacts.php', d),
+  update: (id, d) => http.put(`/contacts.php?id=${id}`, d),
+  delete: (id) => http.delete(`/contacts.php?id=${id}`),
+};
+
+export const campaignsApi = {
+  getAll: (p = {}) => http.get('/campaigns.php', { params: p }),
+  create: (d) => http.post('/campaigns.php', d),
+  send: (id) => http.post(`/campaigns.php?action=send&id=${id}`),
+  delete: (id) => http.delete(`/campaigns.php?id=${id}`),
 };
 
 export const mailApi = {
-  getLogs: (params = {}) => api.get('/mail.php', { params }),
-  send: (data) => api.post('/mail.php', data),
+  getLogs: (p = {}) => http.get('/mail.php', { params: p }),
+  send: (d) => http.post('/mail.php', d),
 };
 
-export const templatesApi = {
-  getAll: () => api.get('/templates.php'),
-  getOne: (id) => api.get(`/templates.php?id=${id}`),
-  create: (data) => api.post('/templates.php', data),
-  update: (id, data) => api.put(`/templates.php?id=${id}`, data),
-  delete: (id) => api.delete(`/templates.php?id=${id}`),
+export const usersApi = {
+  getAll: () => http.get('/users.php'),
+  create: (d) => http.post('/users.php', d),
+  update: (id, d) => http.put(`/users.php?id=${id}`, d),
+  delete: (id) => http.delete(`/users.php?id=${id}`),
 };
 
 export const settingsApi = {
-  get: () => api.get('/settings.php'),
-  update: (data) => api.post('/settings.php', data),
+  get: () => http.get('/settings.php'),
+  update: (d) => http.post('/settings.php', d),
 };
 
-export const statsApi = {
-  get: () => api.get('/stats.php'),
-};
+export const statsApi = { get: () => http.get('/stats.php') };
 
-export default api;
+export default http;

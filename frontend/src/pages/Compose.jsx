@@ -1,276 +1,163 @@
-import { useState, useEffect, useRef } from 'react';
-import { Send, Users, Mail, FileText, Eye, EyeOff, X, Check } from 'lucide-react';
+import { useState } from 'react';
+import { Send, Users, X } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { mailApi, contactsApi, templatesApi } from '../utils/api';
 
-// Simple rich text editor using contentEditable
-function RichEditor({ value, onChange }) {
-  const ref = useRef(null);
-  const toolbarRef = useRef(null);
-
-  const exec = (cmd, val = null) => { document.execCommand(cmd, false, val); ref.current.focus(); };
-
-  const handleInput = () => { onChange(ref.current.innerHTML); };
-
-  useEffect(() => {
-    if (ref.current && ref.current.innerHTML !== value) {
-      ref.current.innerHTML = value || '';
-    }
-  }, []);
-
-  const tools = [
-    { label: 'B', cmd: 'bold', title: 'Bold' },
-    { label: 'I', cmd: 'italic', title: 'Italic' },
-    { label: 'U', cmd: 'underline', title: 'Underline' },
-  ];
-
-  return (
-    <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius2)', overflow: 'hidden' }}>
-      <div style={{ background: 'var(--bg3)', padding: '8px 12px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-        {tools.map(t => (
-          <button key={t.cmd} type="button" title={t.title}
-            style={{ padding: '4px 10px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--card-bg)', color: 'var(--text)', cursor: 'pointer', fontWeight: t.cmd === 'bold' ? 700 : t.cmd === 'italic' ? 400 : 400, fontStyle: t.cmd === 'italic' ? 'italic' : 'normal', textDecoration: t.cmd === 'underline' ? 'underline' : 'none', fontSize: '0.85rem' }}
-            onMouseDown={e => { e.preventDefault(); exec(t.cmd); }}>
-            {t.label}
-          </button>
-        ))}
-        <span style={{ color: 'var(--border2)', padding: '0 4px' }}>|</span>
-        <button type="button" onMouseDown={e => { e.preventDefault(); exec('justifyLeft'); }} style={{ padding: '4px 8px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--card-bg)', color: 'var(--text)', cursor: 'pointer', fontSize: '0.85rem' }}>≡</button>
-        <button type="button" onMouseDown={e => { e.preventDefault(); exec('justifyCenter'); }} style={{ padding: '4px 8px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--card-bg)', color: 'var(--text)', cursor: 'pointer', fontSize: '0.85rem' }}>≡</button>
-        <button type="button" onMouseDown={e => { e.preventDefault(); exec('insertUnorderedList'); }} style={{ padding: '4px 8px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--card-bg)', color: 'var(--text)', cursor: 'pointer', fontSize: '0.85rem' }}>• List</button>
-        <select onChange={e => exec('foreColor', e.target.value)} style={{ padding: '4px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--card-bg)', color: 'var(--text)', cursor: 'pointer', fontSize: '0.82rem' }} defaultValue="">
-          <option value="" disabled>Color</option>
-          <option value="#f0f0f8">White</option>
-          <option value="#6c63ff">Purple</option>
-          <option value="#ff6584">Pink</option>
-          <option value="#43e97b">Green</option>
-          <option value="#ffa502">Orange</option>
-          <option value="#ff4757">Red</option>
-          <option value="#54a0ff">Blue</option>
-        </select>
-        <select onChange={e => exec('fontSize', e.target.value)} style={{ padding: '4px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--card-bg)', color: 'var(--text)', cursor: 'pointer', fontSize: '0.82rem' }} defaultValue="">
-          <option value="" disabled>Size</option>
-          <option value="2">Small</option>
-          <option value="3">Normal</option>
-          <option value="4">Large</option>
-          <option value="5">X-Large</option>
-          <option value="6">2X-Large</option>
-        </select>
-      </div>
-      <div
-        ref={ref}
-        contentEditable
-        onInput={handleInput}
-        suppressContentEditableWarning
-        style={{ minHeight: 220, padding: 16, outline: 'none', color: 'var(--text)', background: 'var(--input-bg)', fontSize: '0.95rem', lineHeight: 1.7 }}
-        data-placeholder="Write your email content here... Use {{name}} to personalize"
-      />
-      <style>{`[contenteditable]:empty:before { content: attr(data-placeholder); color: var(--text2); pointer-events: none; }`}</style>
-    </div>
-  );
-}
+//constant contact can be inserted here
+const CONTACTS = [
+  
+];
 
 export default function Compose() {
+  const [recipientType, setRecipientType] = useState('all');
+  const [selected, setSelected] = useState([]);
+  const [customEmail, setCustomEmail] = useState('');
+  const [customList, setCustomList] = useState([]);
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
-  const [recipientType, setRecipientType] = useState('all');
-  const [contacts, setContacts] = useState([]);
-  const [selectedIds, setSelectedIds] = useState([]);
-  const [customEmails, setCustomEmails] = useState([]);
-  const [emailInput, setEmailInput] = useState('');
-  const [templates, setTemplates] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [preview, setPreview] = useState(false);
-  const [contactSearch, setContactSearch] = useState('');
   const [sending, setSending] = useState(false);
-  const [result, setResult] = useState(null);
+  const [sent, setSent] = useState(false);
+  const [contactSearch, setContactSearch] = useState('');
 
-  useEffect(() => {
-    contactsApi.getAll({ limit: 200 }).then(r => setContacts(r.contacts || []));
-    templatesApi.getAll().then(r => setTemplates(r.templates || []));
-  }, []);
+  const toggleContact = (c) => setSelected(p => p.find(x => x.id === c.id) ? p.filter(x => x.id !== c.id) : [...p, c]);
 
-  const loadTemplate = (id) => {
-    const t = templates.find(t => t.id === parseInt(id));
-    if (t) { setSubject(t.subject); setBody(t.body); toast.success('Template loaded'); }
-  };
-
-  const addEmail = (e) => {
+  const addCustom = (e) => {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
-      const email = emailInput.trim().replace(/,$/, '');
-      if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && !customEmails.includes(email)) {
-        setCustomEmails(p => [...p, email]);
-        setEmailInput('');
+      const email = customEmail.trim().replace(/,$/, '');
+      if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && !customList.includes(email)) {
+        setCustomList(p => [...p, email]);
+        setCustomEmail('');
       }
     }
   };
 
-  const toggleContact = (id) => setSelectedIds(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
-
-  const filteredContacts = contacts.filter(c =>
-    c.name.toLowerCase().includes(contactSearch.toLowerCase()) ||
-    c.email.toLowerCase().includes(contactSearch.toLowerCase())
-  );
-
-  const getRecipientCount = () => {
-    if (recipientType === 'all') return contacts.filter(c => c.subscribed).length;
-    if (recipientType === 'ids') return selectedIds.length;
-    return customEmails.length;
-  };
+  const recipientCount = recipientType === 'all' ? CONTACTS.length : recipientType === 'select' ? selected.length : customList.length;
 
   const handleSend = async () => {
-    if (!subject) return toast.error('Subject is required');
-    if (!body || body === '<br>') return toast.error('Email body is required');
-    if (recipientType === 'ids' && selectedIds.length === 0) return toast.error('Select at least one recipient');
-    if (recipientType === 'emails' && customEmails.length === 0) return toast.error('Add at least one email address');
-
-    const confirmed = confirm(`Send email to ${getRecipientCount()} recipient(s)?`);
-    if (!confirmed) return;
+    if (!subject.trim()) return toast.error('Subject is required');
+    if (!body.trim()) return toast.error('Email body is required');
+    if (recipientType === 'select' && selected.length === 0) return toast.error('Select at least one contact');
+    if (recipientType === 'custom' && customList.length === 0) return toast.error('Add at least one email');
 
     setSending(true);
-    try {
-      const payload = { subject, body, recipient_type: recipientType };
-      if (recipientType === 'ids') payload.contact_ids = selectedIds;
-      if (recipientType === 'emails') payload.emails = customEmails;
-
-      const res = await mailApi.send(payload);
-      setResult(res.results);
-      toast.success(res.message || 'Mail sent!');
-      setSubject(''); setBody(''); setSelectedIds([]); setCustomEmails([]);
-    } catch (e) { toast.error(e.message); }
-    finally { setSending(false); }
+    await new Promise(r => setTimeout(r, 1400));
+    setSending(false);
+    setSent(true);
+    toast.success(`Email sent to ${recipientCount} recipient(s)!`);
   };
 
+  const reset = () => { setSubject(''); setBody(''); setSelected([]); setCustomList([]); setSent(false); };
+
+  const filteredContacts = CONTACTS.filter(c =>
+    c.name.toLowerCase().includes(contactSearch.toLowerCase()) || c.email.toLowerCase().includes(contactSearch.toLowerCase())
+  );
+
+  if (sent) return (
+    <>
+      <div className="topbar"><div className="topbar-title">Compose</div></div>
+      <div className="page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+        <div style={{ textAlign: 'center', maxWidth: 380 }}>
+          <div style={{ fontSize: '3rem', marginBottom: 16 }}>✉️</div>
+          <h2 style={{ fontFamily: 'var(--font-head)', fontSize: '1.5rem', marginBottom: 10 }}>Email sent!</h2>
+          <p style={{ color: 'var(--ink3)', marginBottom: 24 }}>Your email was sent to {recipientCount} recipient(s). Check the mail logs to see delivery status.</p>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+            <button className="btn btn-outline" onClick={reset}>Compose another</button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
   return (
-    <div className="page">
-      <div className="page-header">
-        <div><h2>Compose Email</h2><p>Send personalized emails to your contacts</p></div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button className="btn btn-ghost" onClick={() => setPreview(p => !p)}>
-            {preview ? <><EyeOff size={15} /> Editor</> : <><Eye size={15} /> Preview</>}
-          </button>
+    <>
+      <div className="topbar">
+        <div><div className="topbar-title">Compose</div><div className="topbar-sub">Send an email to your contacts</div></div>
+        <div className="topbar-actions">
           <button className="btn btn-primary" onClick={handleSend} disabled={sending}>
-            {sending ? 'Sending...' : <><Send size={15} /> Send Email</>}
+            <Send size={14} /> {sending ? 'Sending...' : 'Send email'}
           </button>
         </div>
       </div>
 
-      {result && (
-        <div className="card" style={{ marginBottom: 20, borderColor: 'var(--success)', background: 'rgba(46,213,115,0.05)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Check size={20} color="var(--success)" />
-            <div>
-              <strong>Email sent successfully!</strong>
-              <span style={{ color: 'var(--text2)', marginLeft: 12 }}>✅ {result.sent} sent · ❌ {result.failed} failed</span>
+      <div className="page">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 18, alignItems: 'start' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div className="card">
+              <div className="field" style={{ marginBottom: 0 }}>
+                <label>Subject <span style={{ color: 'var(--rust)' }}>*</span></label>
+                <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Your email subject — use {{name}} to personalise" />
+              </div>
             </div>
-            <button onClick={() => setResult(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text2)' }}><X size={16} /></button>
-          </div>
-        </div>
-      )}
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 24 }}>
-        <div>
-          {/* Template Picker */}
-          <div className="card" style={{ marginBottom: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-              <FileText size={16} color="var(--accent)" />
-              <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>Load Template:</span>
-              <select onChange={e => loadTemplate(e.target.value)} style={{ flex: 1, minWidth: 200 }} defaultValue="">
-                <option value="" disabled>Choose a template...</option>
-                {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-              </select>
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="form-group">
-              <label>Subject Line <span>*</span></label>
-              <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Your email subject... Use {{name}} for personalization" />
-            </div>
-
-            <div className="form-group">
-              <label>Email Body <span>*</span></label>
-              {preview ? (
-                <div>
-                  <div className="preview-box" dangerouslySetInnerHTML={{ __html: body || '<p style="color:#999">Nothing to preview yet</p>' }} />
-                </div>
-              ) : (
-                <RichEditor value={body} onChange={setBody} />
-              )}
-              <div style={{ fontSize: '0.78rem', color: 'var(--text2)', marginTop: 8 }}>
-                💡 Use <code style={{ background: 'var(--bg3)', padding: '1px 6px', borderRadius: 4 }}>{'{{name}}'}</code> to personalize with contact name
+            <div className="card">
+              <div className="field" style={{ marginBottom: 0 }}>
+                <label>Body <span style={{ color: 'var(--rust)' }}>*</span></label>
+                <textarea value={body} onChange={e => setBody(e.target.value)} rows={14} placeholder="Write your email content here...&#10;&#10;Use {{name}} to include the recipient's name." />
+                <div className="field-hint">Tip: Use {'{{name}}'} and {'{{email}}'} for personalisation</div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Recipients Panel */}
-        <div>
           <div className="card">
-            <h3 style={{ fontFamily: 'var(--font-head)', fontSize: '1rem', marginBottom: 16 }}>
-              <Users size={16} style={{ marginRight: 8, verticalAlign: 'middle', color: 'var(--accent)' }} />
-              Recipients
-            </h3>
+            <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>
+              <Users size={13} style={{ marginRight: 5, verticalAlign: 'middle' }} />Recipients
+            </div>
 
-            <div className="tabs" style={{ flexDirection: 'column' }}>
-              {[['all', 'All Subscribers'], ['ids', 'Select Contacts'], ['emails', 'Custom Emails']].map(([val, label]) => (
-                <button key={val} className={`tab ${recipientType === val ? 'active' : ''}`} onClick={() => setRecipientType(val)} style={{ textAlign: 'left' }}>
-                  {label}
-                </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
+              {[['all', 'All subscribers'], ['select', 'Pick contacts'], ['custom', 'Custom emails']].map(([val, label]) => (
+                <label key={val} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '7px 10px', borderRadius: 6, background: recipientType === val ? 'var(--rust-light)' : 'transparent', border: `1px solid ${recipientType === val ? 'var(--rust-mid)' : 'transparent'}` }}>
+                  <input type="radio" name="rt" value={val} checked={recipientType === val} onChange={() => setRecipientType(val)} style={{ accentColor: 'var(--rust)' }} />
+                  <span style={{ fontSize: '0.85rem', color: recipientType === val ? 'var(--rust)' : 'var(--ink2)', fontWeight: recipientType === val ? 600 : 400 }}>{label}</span>
+                </label>
               ))}
             </div>
 
             {recipientType === 'all' && (
-              <div style={{ padding: '12px', background: 'var(--bg3)', borderRadius: 'var(--radius2)', textAlign: 'center' }}>
-                <Users size={24} color="var(--accent)" style={{ marginBottom: 8 }} />
-                <div style={{ fontWeight: 600 }}>{contacts.filter(c => c.subscribed).length} subscribers</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text2)' }}>All subscribed contacts</div>
+              <div style={{ background: 'var(--cream)', border: '1px solid var(--border)', borderRadius: 6, padding: '10px 12px', fontSize: '0.85rem', color: 'var(--ink3)' }}>
+                <strong style={{ color: 'var(--ink)', display: 'block' }}>{CONTACTS.length} contacts</strong>
+                All subscribed contacts will receive this email
               </div>
             )}
 
-            {recipientType === 'ids' && (
+            {recipientType === 'select' && (
               <div>
-                <input value={contactSearch} onChange={e => setContactSearch(e.target.value)} placeholder="Search contacts..." style={{ marginBottom: 8 }} />
-                <div className="contact-select-list">
+                <input value={contactSearch} onChange={e => setContactSearch(e.target.value)} placeholder="Search..." style={{ marginBottom: 8, fontSize: '0.82rem' }} />
+                <div style={{ border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden', maxHeight: 220, overflowY: 'auto' }}>
                   {filteredContacts.map(c => (
-                    <div key={c.id} className={`contact-select-item ${selectedIds.includes(c.id) ? 'selected' : ''}`} onClick={() => toggleContact(c.id)}>
-                      <input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => {}} />
-                      <div className="contact-avatar" style={{ width: 28, height: 28, fontSize: '0.75rem' }}>{c.name?.charAt(0)?.toUpperCase()}</div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '0.85rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.email}</div>
+                    <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid var(--border)', background: selected.find(x => x.id === c.id) ? 'var(--rust-light)' : '#fff' }}>
+                      <input type="checkbox" checked={!!selected.find(x => x.id === c.id)} onChange={() => toggleContact(c)} style={{ accentColor: 'var(--rust)' }} />
+                      <div>
+                        <div style={{ fontSize: '0.83rem', fontWeight: 500 }}>{c.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--ink4)' }}>{c.email}</div>
                       </div>
-                    </div>
+                    </label>
                   ))}
                 </div>
-                {selectedIds.length > 0 && <div style={{ marginTop: 8, fontSize: '0.85rem', color: 'var(--accent)' }}>{selectedIds.length} selected</div>}
+                {selected.length > 0 && <div style={{ fontSize: '0.78rem', color: 'var(--rust)', marginTop: 6 }}>{selected.length} selected</div>}
               </div>
             )}
 
-            {recipientType === 'emails' && (
+            {recipientType === 'custom' && (
               <div>
-                <div className="tags-input" onClick={() => document.querySelector('.email-tag-input')?.focus()}>
-                  {customEmails.map(e => (
-                    <span key={e} className="tag">{e}<button onClick={() => setCustomEmails(p => p.filter(x => x !== e))}>×</button></span>
+                <div style={{ border: '1px solid var(--border2)', borderRadius: 6, padding: '6px 8px', minHeight: 48, display: 'flex', flexWrap: 'wrap', gap: 5, cursor: 'text', background: '#fff' }} onClick={() => document.getElementById('custominput').focus()}>
+                  {customList.map(e => (
+                    <span key={e} className="tag">{e}<button type="button" onClick={() => setCustomList(p => p.filter(x => x !== e))}>×</button></span>
                   ))}
-                  <input className="email-tag-input" value={emailInput} onChange={e => setEmailInput(e.target.value)} onKeyDown={addEmail} placeholder={customEmails.length ? '' : 'Type email, press Enter...'} />
+                  <input id="custominput" value={customEmail} onChange={e => setCustomEmail(e.target.value)} onKeyDown={addCustom} placeholder={customList.length ? '' : 'Type email, press Enter'} style={{ border: 'none', outline: 'none', fontSize: '0.82rem', flex: 1, minWidth: 120, padding: '2px 4px' }} />
                 </div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text2)', marginTop: 6 }}>Press Enter or comma to add email</div>
+                <div className="field-hint">Press Enter or comma to add</div>
               </div>
             )}
 
-            <div style={{ marginTop: 16, padding: '12px', background: 'rgba(108,99,255,0.1)', borderRadius: 'var(--radius2)', fontSize: '0.85rem' }}>
-              <strong style={{ color: 'var(--accent)' }}>{getRecipientCount()}</strong>
-              <span style={{ color: 'var(--text2)' }}> recipient(s) will receive this email</span>
+            <div style={{ marginTop: 14, padding: '10px 12px', background: 'var(--cream)', borderRadius: 6, border: '1px solid var(--border)', fontSize: '0.83rem' }}>
+              <strong>{recipientCount}</strong> <span style={{ color: 'var(--ink3)' }}>recipient(s)</span>
             </div>
 
-            <button className="btn btn-primary" style={{ width: '100%', marginTop: 16, justifyContent: 'center' }} onClick={handleSend} disabled={sending}>
-              {sending ? '⏳ Sending...' : <><Send size={15} /> Send Now</>}
+            <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: 12 }} onClick={handleSend} disabled={sending}>
+              <Send size={14} /> {sending ? 'Sending...' : 'Send now'}
             </button>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

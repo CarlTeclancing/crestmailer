@@ -18,7 +18,7 @@ export default function UserForm({ onUserAdded }) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
       return "Please enter a valid email address.";
     if (!/^[\+\d\s\-\(\)]{7,20}$/.test(form.phone))
-      return "Please enter a valid phone number (7–16 digits).";
+      return "Please enter a valid phone number (7–20 digits).";
     return null;
   };
 

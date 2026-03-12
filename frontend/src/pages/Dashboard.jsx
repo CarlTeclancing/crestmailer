@@ -1,117 +1,112 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Mail, Send, FileText, TrendingUp, Clock } from 'lucide-react';
-import { statsApi } from '../utils/api';
-import { formatDistanceToNow } from 'date-fns';
+import { Users, Send, Megaphone, TrendingUp } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { Spinner } from '../components/UI';
+
+// Mock data - can be replaced with real API
+const MOCK_STATS = { contacts: 0, campaigns: 0,  sent: 0, openRate: 0 };
+const MOCK_RECENT = [
+
+];
 
 export default function Dashboard() {
-  const [data, setData] = useState(null);
+  const { user, can } = useAuth();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    statsApi.get().then(res => { setData(res); setLoading(false); }).catch(() => setLoading(false));
+    const t = setTimeout(() => setLoading(false), 600);
+    return () => clearTimeout(t);
   }, []);
 
-  if (loading) return <div className="page"><div className="loading"><div className="spinner" /></div></div>;
-
-  const stats = data?.stats || {};
-  const recentMails = data?.recent_mails || [];
-  const recentContacts = data?.recent_contacts || [];
-
-  const statCards = [
-    { label: 'Total Contacts', value: stats.total_contacts ?? 0, icon: Users, color: '#6c63ff' },
-    { label: 'Subscribed', value: stats.subscribed_contacts ?? 0, icon: TrendingUp, color: '#43e97b' },
-    { label: 'Emails Sent', value: stats.total_mails_sent ?? 0, icon: Send, color: '#ff6584' },
-    { label: 'Total Recipients', value: stats.total_recipients ?? 0, icon: Mail, color: '#ffa502' },
-    { label: 'Templates', value: stats.total_templates ?? 0, icon: FileText, color: '#54a0ff' },
-  ];
+  if (loading) return <><div className="topbar"><div className="topbar-title">Dashboard</div></div><Spinner /></>;
 
   return (
-    <div className="page">
-      <div className="page-header">
+    <>
+      <div className="topbar">
         <div>
-          <h2>Dashboard</h2>
-          <p>Welcome back! Here's what's happening with your mailer.</p>
+          <div className="topbar-title">Dashboard</div>
+          <div className="topbar-sub">Good to have you back, {user.name.split(' ')[0]}</div>
         </div>
-        <Link to="/compose" className="btn btn-primary"><Send size={16} /> Compose Mail</Link>
+        <div className="topbar-actions">
+          <Link to="/compose" className="btn btn-primary btn-sm"><Send size={14} /> Compose</Link>
+        </div>
       </div>
 
-      <div className="stats-grid">
-        {statCards.map(({ label, value, icon: Icon, color }) => (
-          <div className="stat-card" key={label} style={{ '--accent-color': color }}>
-            <h3>{label}</h3>
-            <div className="stat-value">{value.toLocaleString()}</div>
-            <div className="stat-icon"><Icon /></div>
+      <div className="page">
+        <div className="stats-row">
+          {[
+            { label: 'Total contacts', val: MOCK_STATS.contacts, icon: Users, color: 'var(--rust)' },
+            { label: 'Campaigns run', val: MOCK_STATS.campaigns, icon: Megaphone, color: 'var(--sage)' },
+            { label: 'Emails sent', val: MOCK_STATS.sent.toLocaleString(), icon: Send, color: 'var(--blue)' },
+            { label: 'Avg open rate', val: `${MOCK_STATS.openRate}%`, icon: TrendingUp, color: '#7c3aed' },
+          ].map(s => (
+            <div key={s.label} className="stat">
+              <div className="stat-label">{s.label}</div>
+              <div className="stat-val" style={{ color: s.color }}>{s.val}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 16 }}>
+          <div className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ fontFamily: 'var(--font-head)', fontSize: '1rem' }}>Recent campaigns</h3>
+              <Link to="/campaigns" className="btn btn-ghost btn-sm">View all</Link>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Subject</th>
+                  <th>Recipients</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {MOCK_RECENT.map(r => (
+                  <tr key={r.id}>
+                    <td style={{ fontWeight: 500, color: 'var(--ink)' }}>{r.subject}</td>
+                    <td>{r.recipients}</td>
+                    <td style={{ color: 'var(--ink3)' }}>{r.date}</td>
+                    <td><span className="badge badge-green">{r.status}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ))}
-      </div>
 
-      <div className="grid-2" style={{ gap: 24 }}>
-        <div className="card">
-          <h3 style={{ fontFamily: 'var(--font-head)', marginBottom: 16, fontSize: '1rem' }}>
-            <Mail size={16} style={{ marginRight: 8, verticalAlign: 'middle', color: 'var(--accent)' }} />
-            Recent Campaigns
-          </h3>
-          {recentMails.length === 0 ? (
-            <div className="empty-state" style={{ padding: '30px 0' }}>
-              <Mail size={32} style={{ opacity: 0.3, display: 'block', margin: '0 auto 8px' }} />
-              <p style={{ fontSize: '0.9rem' }}>No emails sent yet</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="card card-sm">
+              <div style={{ fontSize: '0.75rem', color: 'var(--ink3)', marginBottom: 8, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Quick actions</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <Link to="/contacts" className="btn btn-outline btn-sm" style={{ justifyContent: 'center' }}>Manage contacts</Link>
+                <Link to="/campaigns" className="btn btn-outline btn-sm" style={{ justifyContent: 'center' }}>New campaign</Link>
+                {can(['admin', 'superadmin']) && (
+                  <Link to="/settings" className="btn btn-outline btn-sm" style={{ justifyContent: 'center' }}>Settings</Link>
+                )}
+              </div>
             </div>
-          ) : recentMails.map((mail, i) => (
-            <div key={i} style={{ padding: '12px 0', borderBottom: i < recentMails.length - 1 ? '1px solid var(--border)' : 'none' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ flex: 1, marginRight: 12 }}>
-                  <div style={{ fontWeight: 500, fontSize: '0.9rem', marginBottom: 2 }}>{mail.subject}</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span className="badge badge-purple">{mail.recipient_count} recipients</span>
-                    <span style={{ fontSize: '0.78rem', color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Clock size={12} /> {formatDistanceToNow(new Date(mail.sent_at), { addSuffix: true })}
-                    </span>
+
+            <div className="card card-sm">
+              <div style={{ fontSize: '0.75rem', color: 'var(--ink3)', marginBottom: 10, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Delivery health</div>
+              {[
+                { label: 'Delivered', pct: 0 },
+                { label: 'Opened', pct: 0 },
+                { label: 'Clicked', pct: 0 },
+              ].map(m => (
+                <div key={m.label} style={{ marginBottom: 10 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: 4 }}>
+                    <span style={{ color: 'var(--ink2)' }}>{m.label}</span>
+                    <span style={{ fontWeight: 600 }}>{m.pct}%</span>
                   </div>
+                  <div className="progress-bar"><div className="progress-fill" style={{ width: `${m.pct}%` }} /></div>
                 </div>
-              </div>
+              ))}
             </div>
-          ))}
-          <Link to="/logs" className="btn btn-ghost btn-sm" style={{ marginTop: 12, width: '100%', justifyContent: 'center' }}>View All Logs</Link>
-        </div>
-
-        <div className="card">
-          <h3 style={{ fontFamily: 'var(--font-head)', marginBottom: 16, fontSize: '1rem' }}>
-            <Users size={16} style={{ marginRight: 8, verticalAlign: 'middle', color: 'var(--accent)' }} />
-            Recent Contacts
-          </h3>
-          {recentContacts.length === 0 ? (
-            <div className="empty-state" style={{ padding: '30px 0' }}>
-              <Users size={32} style={{ opacity: 0.3, display: 'block', margin: '0 auto 8px' }} />
-              <p style={{ fontSize: '0.9rem' }}>No contacts yet</p>
-            </div>
-          ) : recentContacts.map((c, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: i < recentContacts.length - 1 ? '1px solid var(--border)' : 'none' }}>
-              <div className="contact-avatar">{c.name?.charAt(0)?.toUpperCase()}</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 500, fontSize: '0.9rem' }}>{c.name}</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text2)' }}>{c.email}</div>
-              </div>
-              <span style={{ fontSize: '0.78rem', color: 'var(--text2)' }}>
-                {formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}
-              </span>
-            </div>
-          ))}
-          <Link to="/contacts" className="btn btn-ghost btn-sm" style={{ marginTop: 12, width: '100%', justifyContent: 'center' }}>View All Contacts</Link>
+          </div>
         </div>
       </div>
-
-      <div className="card" style={{ marginTop: 24 }}>
-        <h3 style={{ fontFamily: 'var(--font-head)', marginBottom: 8, fontSize: '1rem' }}>🚀 Quick Actions</h3>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 16 }}>
-          <Link to="/compose" className="btn btn-primary"><Send size={15} /> Send Campaign</Link>
-          <Link to="/contacts" className="btn btn-ghost"><Users size={15} /> Manage Contacts</Link>
-          <Link to="/templates" className="btn btn-ghost"><FileText size={15} /> Manage Templates</Link>
-          <a href="/subscribe" target="_blank" rel="noreferrer" className="btn btn-success" style={{ color: '#0a0a0f' }}>
-            📋 Subscribe Page
-          </a>
-        </div>
-      </div>
-    </div>
+    </>
   );
 }

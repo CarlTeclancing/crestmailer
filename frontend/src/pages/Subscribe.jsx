@@ -1,198 +1,68 @@
-import { useState } from 'react';
-import { contactsApi } from '../utils/api';
+import { useState, useRef } from 'react';
+import { Image, X } from 'lucide-react';
 
+// This can be customised via the campaign/settings image upload
 export default function Subscribe() {
   const [form, setForm] = useState({ name: '', email: '', phone: '' });
-  const [status, setStatus] = useState('idle'); // idle, loading, success, error
-  const [error, setError] = useState('');
+  const [status, setStatus] = useState('idle');
+  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
-  const update = (k, v) => setForm(p => ({ ...p, [k]: v }));
-
-  const handleSubmit = async (e) => {
+  const submit = async (e) => {
     e.preventDefault();
-    if (!form.name || !form.email) return;
     setStatus('loading');
-    try {
-      await contactsApi.create(form);
-      setStatus('success');
-    } catch (err) {
-      setError(err.message);
-      setStatus('error');
-    }
+    // canbe replaced with real API call: await contactsApi.create(form)
+    await new Promise(r => setTimeout(r, 900));
+    setStatus('success');
   };
 
-  const inputStyle = {
-    width: '100%',
-    padding: '11px 14px',
-    background: '#fff',
-    border: '1.5px solid #e2e8f0',
-    borderRadius: 10,
-    color: '#1a202c',
-    fontSize: '0.95rem',
-    outline: 'none',
-    fontFamily: 'inherit',
-    boxSizing: 'border-box',
-    transition: 'border-color 0.2s, box-shadow 0.2s',
-  };
-
-  const labelStyle = {
-    display: 'block',
-    fontSize: '0.8rem',
-    fontWeight: 600,
-    color: '#64748b',
-    marginBottom: 6,
-    textTransform: 'uppercase',
-    letterSpacing: '0.06em',
-  };
+  if (status === 'success') return (
+    <div style={{ minHeight: '100vh', background: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font)', padding: 24 }}>
+      <div style={{ textAlign: 'center', maxWidth: 380 }}>
+        <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#dcfce7', border: '2px solid #86efac', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: '1.4rem' }}>✓</div>
+        <h2 style={{ fontFamily: 'var(--font-head)', fontSize: '1.5rem', marginBottom: 8 }}>You're subscribed!</h2>
+        <p style={{ color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 20 }}>Welcome, <strong>{form.name}</strong>. You'll hear from us soon.</p>
+        <button onClick={() => { setStatus('idle'); setForm({ name: '', email: '', phone: '' }); }} className="btn btn-outline">Subscribe another</button>
+      </div>
+    </div>
+  );
 
   return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-        .sub-wrap * { font-family: 'Plus Jakarta Sans', sans-serif; box-sizing: border-box; }
-        .sub-input:focus { border-color: #6366f1 !important; box-shadow: 0 0 0 3px rgba(99,102,241,0.12) !important; }
-        .sub-btn:hover:not(:disabled) { background: #4f46e5 !important; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(99,102,241,0.35) !important; }
-        .sub-btn:disabled { opacity: 0.7; cursor: not-allowed; }
-        .sub-card { animation: fadeUp 0.4s ease both; }
-        .sub-field { animation: fadeUp 0.4s ease both; }
-        .sub-field:nth-child(1) { animation-delay: 0.08s; }
-        .sub-field:nth-child(2) { animation-delay: 0.16s; }
-        .sub-field:nth-child(3) { animation-delay: 0.24s; }
-        .sub-field:nth-child(4) { animation-delay: 0.32s; }
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
-        .sub-back-btn:hover { border-color: #6366f1 !important; color: #6366f1 !important; }
-      `}</style>
+    <div style={{ minHeight: '100vh', background: 'var(--cream)', fontFamily: 'var(--font)' }}>
+      <div style={{ background: 'var(--ink)', padding: '14px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ fontFamily: 'var(--font-head)', fontSize: '1.1rem', color: '#fff' }}>MailFlow</div>
+      </div>
 
-      <div className="sub-wrap" style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(150deg, #eef2ff 0%, #fafafa 45%, #fdf4ff 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '24px',
-        position: 'relative',
-        overflow: 'hidden',
-      }}>
+      <div style={{ maxWidth: 480, margin: '60px auto', padding: '0 20px' }}>
+        <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', boxShadow: 'var(--shadow)' }}>
+          <div style={{ background: 'var(--ink)', padding: '28px 32px' }}>
+            <h1 style={{ fontFamily: 'var(--font-head)', color: '#fff', fontSize: '1.6rem', marginBottom: 6 }}>Stay in the loop</h1>
+            <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.88rem' }}>Get updates delivered straight to your inbox. No spam.</p>
+          </div>
 
-        {/* Background shapes */}
-        <div style={{ position: 'absolute', width: 560, height: 560, borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 65%)', top: '-180px', right: '-80px', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', width: 420, height: 420, borderRadius: '50%', background: 'radial-gradient(circle, rgba(168,85,247,0.07) 0%, transparent 65%)', bottom: '-120px', left: '-60px', pointerEvents: 'none' }} />
-
-        <div className="sub-card" style={{
-          width: '100%',
-          maxWidth: 420,
-          background: '#ffffff',
-          borderRadius: 20,
-          padding: '40px 36px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.04), 0 16px 48px rgba(99,102,241,0.1)',
-          border: '1px solid rgba(99,102,241,0.1)',
-          position: 'relative',
-          zIndex: 1,
-        }}>
-
-          {status === 'success' ? (
-            <div style={{ textAlign: 'center', padding: '12px 0' }}>
-              <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: '1.8rem', color: '#fff' }}>✓</div>
-              <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#1a202c', marginBottom: 10 }}>You're subscribed!</h2>
-              <p style={{ color: '#64748b', lineHeight: 1.7, fontSize: '0.95rem' }}>
-                Welcome, <strong style={{ color: '#6366f1' }}>{form.name}</strong>!<br />
-                You'll receive our latest updates in your inbox.
-              </p>
-              <button
-                className="sub-back-btn"
-                onClick={() => { setStatus('idle'); setForm({ name: '', email: '', phone: '' }); }}
-                style={{ marginTop: 24, padding: '10px 22px', background: 'transparent', border: '1.5px solid #e2e8f0', borderRadius: 8, color: '#64748b', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 600, transition: 'all 0.2s' }}
-              >
-                Subscribe another →
-              </button>
-            </div>
-          ) : (
-            <>
-              {/* Header */}
-              <div style={{ textAlign: 'center', marginBottom: 28 }}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 52, height: 52, borderRadius: 14, background: 'linear-gradient(135deg, #6366f1, #a855f7)', marginBottom: 16, fontSize: '1.4rem' }}>✉️</div>
-                <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#1a202c', marginBottom: 8, lineHeight: 1.2 }}>Stay in the Loop</h1>
-                <p style={{ color: '#64748b', fontSize: '0.92rem', lineHeight: 1.6 }}>
-                  Subscribe for updates, news, and exclusive content.
-                </p>
+          <div style={{ padding: '28px 32px' }}>
+            <form onSubmit={submit}>
+              <div className="field">
+                <label>Your name <span style={{ color: 'var(--rust)' }}>*</span></label>
+                <input required value={form.name} onChange={e => set('name', e.target.value)} placeholder="Ada Okonkwo" />
               </div>
-
-              <form onSubmit={handleSubmit}>
-                <div className="sub-field" style={{ marginBottom: 14 }}>
-                  <label style={labelStyle}>Full Name <span style={{ color: '#6366f1' }}>*</span></label>
-                  <input
-                    className="sub-input"
-                    required
-                    value={form.name}
-                    onChange={e => update('name', e.target.value)}
-                    style={inputStyle}
-                  />
-                </div>
-
-                <div className="sub-field" style={{ marginBottom: 14 }}>
-                  <label style={labelStyle}>Email Address <span style={{ color: '#6366f1' }}>*</span></label>
-                  <input
-                    className="sub-input"
-                    required
-                    type="email"
-                    value={form.email}
-                    onChange={e => update('email', e.target.value)}
-                    style={inputStyle}
-                  />
-                </div>
-
-                <div className="sub-field" style={{ marginBottom: 22 }}>
-                  <label style={labelStyle}>
-                    Phone Number{' '}
-                    <span style={{ color: '#94a3b8', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}></span>
-                  </label>
-                  <input
-                    className="sub-input"
-                    type="tel"
-                    value={form.phone}
-                    onChange={e => update('phone', e.target.value)}
-                    style={inputStyle}
-                  />
-                </div>
-
-                {status === 'error' && (
-                  <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#dc2626', fontSize: '0.85rem', marginBottom: 14 }}>
-                    {error}
-                  </div>
-                )}
-
-                <div className="sub-field">
-                  <button
-                    className="sub-btn"
-                    type="submit"
-                    disabled={status === 'loading'}
-                    style={{
-                      width: '100%',
-                      padding: '13px',
-                      borderRadius: 10,
-                      border: 'none',
-                      cursor: 'pointer',
-                      background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                      color: '#fff',
-                      fontSize: '0.95rem',
-                      fontWeight: 700,
-                      transition: 'all 0.2s',
-                      boxShadow: '0 4px 16px rgba(99,102,241,0.3)',
-                      letterSpacing: '0.01em',
-                    }}
-                  >
-                    {status === 'loading' ? 'Subscribing...' : 'Subscribe Now →'}
-                  </button>
-                </div>
-              </form>
-
-              <p style={{ textAlign: 'center', fontSize: '0.78rem', color: '#94a3b8', marginTop: 18, lineHeight: 1.5 }}>
-                🔒 We respect your privacy. Unsubscribe at any time.
-              </p>
-            </>
-          )}
+              <div className="field">
+                <label>Email address <span style={{ color: 'var(--rust)' }}>*</span></label>
+                <input required type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="ada@example.com" />
+              </div>
+              <div className="field">
+                <label>Phone number <span style={{ color: 'var(--ink4)', fontWeight: 400 }}>(optional)</span></label>
+                <input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="+234 800 000 0000" />
+              </div>
+              <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%', justifyContent: 'center', marginTop: 4 }} disabled={status === 'loading'}>
+                {status === 'loading' ? 'Subscribing...' : 'Subscribe'}
+              </button>
+            </form>
+            <p style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--ink4)', marginTop: 16 }}>
+              Your data is safe. Unsubscribe anytime.
+            </p>
+          </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

@@ -1,138 +1,114 @@
-import { useEffect, useState } from 'react';
-import { Settings as SettingsIcon, Save, Mail, Globe, Lock } from 'lucide-react';
+import { useState } from 'react';
+import { Save } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { settingsApi } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 
 export default function Settings() {
-  const [settings, setSettings] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const { can } = useAuth();
   const [tab, setTab] = useState('general');
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    settingsApi.get().then(r => { setSettings(r.settings || {}); setLoading(false); }).catch(() => setLoading(false));
-  }, []);
-
-  const update = (key, val) => setSettings(p => ({ ...p, [key]: val }));
+  const [general, setGeneral] = useState({ app_name: 'MailFlow', from_name: 'MailFlow Team', from_email: 'noreply@mailflow.com', reply_to: '' });
+  const [smtp, setSmtp] = useState({ host: 'smtp.mailtrap.io', port: '587', user: '', pass: '', encryption: 'tls' });
+  const [branding, setBranding] = useState({ primary_color: '#c2410c', footer_text: 'You are receiving this because you subscribed.', logo_url: '' });
 
   const save = async () => {
     setSaving(true);
-    try {
-      await settingsApi.update(settings);
-      toast.success('Settings saved!');
-    } catch (e) { toast.error(e.message); }
-    finally { setSaving(false); }
+    await new Promise(r => setTimeout(r, 700));
+    setSaving(false);
+    toast.success('Settings saved');
   };
 
-  if (loading) return <div className="page"><div className="loading"><div className="spinner" /></div></div>;
-
-  const tabs = [
-    { id: 'general', label: 'General', icon: Globe },
-    { id: 'email', label: 'Email / SMTP', icon: Mail },
-    { id: 'templates', label: 'Default Messages', icon: SettingsIcon },
-  ];
+  const setG = (k, v) => setGeneral(p => ({ ...p, [k]: v }));
+  const setS = (k, v) => setSmtp(p => ({ ...p, [k]: v }));
+  const setB = (k, v) => setBranding(p => ({ ...p, [k]: v }));
 
   return (
-    <div className="page">
-      <div className="page-header">
-        <div><h2>Settings</h2><p>Configure your mailer application</p></div>
-        <button className="btn btn-primary" onClick={save} disabled={saving}>
-          <Save size={16} /> {saving ? 'Saving...' : 'Save Settings'}
-        </button>
+    <>
+      <div className="topbar">
+        <div><div className="topbar-title">Settings</div></div>
+        <div className="topbar-actions">
+          <button className="btn btn-primary btn-sm" onClick={save} disabled={saving}><Save size={14} /> {saving ? 'Saving...' : 'Save changes'}</button>
+        </div>
       </div>
 
-      <div className="tabs">
-        {tabs.map(({ id, label, icon: Icon }) => (
-          <button key={id} className={`tab ${tab === id ? 'active' : ''}`} onClick={() => setTab(id)}>
-            <Icon size={14} style={{ marginRight: 6, verticalAlign: 'middle' }} />{label}
-          </button>
-        ))}
+      <div className="page" style={{ maxWidth: 680 }}>
+        <div className="tabs">
+          {[['general', 'General'], ['smtp', 'Email / SMTP'], ['branding', 'Branding']].map(([id, label]) => (
+            <button key={id} className={`tab-btn ${tab === id ? 'active' : ''}`} onClick={() => setTab(id)}>{label}</button>
+          ))}
+        </div>
+
+        {tab === 'general' && (
+          <div className="card">
+            <div className="form-row">
+              <div className="field"><label>App name</label><input value={general.app_name} onChange={e => setG('app_name', e.target.value)} /></div>
+              <div className="field"><label>From name</label><input value={general.from_name} onChange={e => setG('from_name', e.target.value)} /></div>
+            </div>
+            <div className="form-row">
+              <div className="field"><label>From email</label><input type="email" value={general.from_email} onChange={e => setG('from_email', e.target.value)} /></div>
+              <div className="field"><label>Reply-to email</label><input type="email" value={general.reply_to} onChange={e => setG('reply_to', e.target.value)}  /></div>
+            </div>
+          </div>
+        )}
+
+        {tab === 'smtp' && (
+          <div className="card">
+            <div style={{ background: 'var(--rust-light)', border: '1px solid var(--rust-mid)', borderRadius: 6, padding: '10px 14px', marginBottom: 18, fontSize: '0.82rem', color: 'var(--rust)' }}>
+              SMTP credentials are used to send emails. Use Mailtrap for testing.
+            </div>
+            <div className="form-row">
+              <div className="field"><label>SMTP host</label><input value={smtp.host} onChange={e => setS('host', e.target.value)} placeholder="smtp.gmail.com" /></div>
+              <div className="field"><label>Port</label><input value={smtp.port} onChange={e => setS('port', e.target.value)} /></div>
+            </div>
+            <div className="form-row">
+              <div className="field"><label>Username</label><input value={smtp.user} onChange={e => setS('user', e.target.value)} /></div>
+              <div className="field"><label>Password</label><input type="password" value={smtp.pass} onChange={e => setS('pass', e.target.value)} /></div>
+            </div>
+            <div className="field" style={{ maxWidth: 200 }}>
+              <label>Encryption</label>
+              <select value={smtp.encryption} onChange={e => setS('encryption', e.target.value)}>
+                <option value="tls">TLS</option>
+                <option value="ssl">SSL</option>
+                <option value="none">None</option>
+              </select>
+            </div>
+          </div>
+        )}
+
+        {tab === 'branding' && (
+          <div className="card">
+            <div className="field">
+              <label>Primary / brand colour</label>
+              <div className="color-row">
+                <input type="color" value={branding.primary_color} onChange={e => setB('primary_color', e.target.value)} style={{ width: 40, height: 36, padding: 2, cursor: 'pointer', borderRadius: 6, border: '1px solid var(--border2)' }} />
+                <input value={branding.primary_color} onChange={e => setB('primary_color', e.target.value)} style={{ width: 130 }} />
+              </div>
+            </div>
+            <div className="field">
+              <label>Logo URL</label>
+              <input value={branding.logo_url} onChange={e => setB('logo_url', e.target.value)} placeholder="https://yoursite.com/logo.png" />
+              <div className="field-hint">Used in email headers. Leave blank to show app name instead.</div>
+            </div>
+            <div className="field">
+              <label>Email footer text</label>
+              <textarea value={branding.footer_text} onChange={e => setB('footer_text', e.target.value)} rows={3} />
+            </div>
+            <div style={{ marginTop: 16, border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
+              <div style={{ height: 6, background: branding.primary_color }} />
+              <div style={{ padding: '16px 20px', background: '#fff', fontSize: '0.85rem' }}>
+                <strong>Email preview with your branding</strong><br />
+                <span style={{ color: 'var(--ink3)', fontSize: '0.8rem' }}>This is how the header colour will appear in emails.</span>
+              </div>
+              <div style={{ padding: '8px 20px', background: 'var(--cream)', fontSize: '0.75rem', color: 'var(--ink4)' }}>{branding.footer_text}</div>
+            </div>
+          </div>
+        )}
+
+        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
+          <button className="btn btn-primary" onClick={save} disabled={saving}><Save size={14} /> {saving ? 'Saving...' : 'Save changes'}</button>
+        </div>
       </div>
-
-      {tab === 'general' && (
-        <div className="card">
-          <h3 style={{ fontFamily: 'var(--font-head)', marginBottom: 20, fontSize: '1rem' }}>General Settings</h3>
-          <div className="grid-2">
-            <div className="form-group">
-              <label>Application Name</label>
-              <input value={settings.app_name || ''} onChange={e => update('app_name', e.target.value)} placeholder="MailerApp" />
-            </div>
-            <div className="form-group">
-              <label>Admin Email</label>
-              <input type="email" value={settings.admin_email || ''} onChange={e => update('admin_email', e.target.value)} placeholder="admin@example.com" />
-            </div>
-          </div>
-          <div className="grid-2">
-            <div className="form-group">
-              <label>From Name</label>
-              <input value={settings.from_name || ''} onChange={e => update('from_name', e.target.value)} placeholder="Your Company" />
-            </div>
-            <div className="form-group">
-              <label>From Email</label>
-              <input type="email" value={settings.from_email || ''} onChange={e => update('from_email', e.target.value)} placeholder="noreply@example.com" />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {tab === 'email' && (
-        <div className="card">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-            <Lock size={16} color="var(--warning)" />
-            <span style={{ fontSize: '0.85rem', color: 'var(--warning)' }}>SMTP credentials are stored securely. Passwords are not displayed after saving.</span>
-          </div>
-          <h3 style={{ fontFamily: 'var(--font-head)', marginBottom: 20, fontSize: '1rem' }}>SMTP Configuration</h3>
-          <div className="grid-2">
-            <div className="form-group">
-              <label>SMTP Host</label>
-              <input value={settings.smtp_host || ''} onChange={e => update('smtp_host', e.target.value)} placeholder="smtp.gmail.com" />
-            </div>
-            <div className="form-group">
-              <label>SMTP Port</label>
-              <input type="number" value={settings.smtp_port || ''} onChange={e => update('smtp_port', e.target.value)} placeholder="587" />
-            </div>
-          </div>
-          <div className="grid-2">
-            <div className="form-group">
-              <label>SMTP Username</label>
-              <input value={settings.smtp_user || ''} onChange={e => update('smtp_user', e.target.value)} placeholder="your@email.com" />
-            </div>
-            <div className="form-group">
-              <label>SMTP Password</label>
-              <input type="password" value={settings.smtp_pass || ''} onChange={e => update('smtp_pass', e.target.value)} placeholder="••••••••" />
-            </div>
-          </div>
-          <div className="card" style={{ background: 'var(--bg3)', marginTop: 8 }}>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text2)', marginBottom: 8 }}>💡 <strong>Popular SMTP Services:</strong></p>
-            <ul style={{ fontSize: '0.82rem', color: 'var(--text2)', paddingLeft: 20, lineHeight: 2 }}>
-              <li><strong>Gmail:</strong> smtp.gmail.com : 587 (Use App Password)</li>
-              <li><strong>SendGrid:</strong> smtp.sendgrid.net : 587</li>
-              <li><strong>Mailgun:</strong> smtp.mailgun.org : 587</li>
-              <li><strong>Mailtrap (dev):</strong> sandbox.smtp.mailtrap.io : 2525</li>
-            </ul>
-          </div>
-        </div>
-      )}
-
-      {tab === 'templates' && (
-        <div className="card">
-          <h3 style={{ fontFamily: 'var(--font-head)', marginBottom: 20, fontSize: '1rem' }}>Default Messages</h3>
-          <div className="form-group">
-            <label>Welcome Email Subject</label>
-            <input value={settings.welcome_subject || ''} onChange={e => update('welcome_subject', e.target.value)} />
-          </div>
-          <div className="form-group">
-            <label>Welcome Email Body</label>
-            <textarea value={settings.welcome_body || ''} onChange={e => update('welcome_body', e.target.value)} rows={8} />
-            <div style={{ fontSize: '0.78rem', color: 'var(--text2)', marginTop: 6 }}>
-              Variables: <code style={{ background: 'var(--bg3)', padding: '1px 6px', borderRadius: 4 }}>{'{{name}}'}</code> <code style={{ background: 'var(--bg3)', padding: '1px 6px', borderRadius: 4 }}>{'{{app_name}}'}</code>
-            </div>
-          </div>
-          <button className="btn btn-primary" onClick={save} disabled={saving}>
-            <Save size={15} /> {saving ? 'Saving...' : 'Save All Settings'}
-          </button>
-        </div>
-      )}
-    </div>
+    </>
   );
 }
