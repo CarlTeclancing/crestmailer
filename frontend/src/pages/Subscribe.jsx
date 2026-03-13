@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { Image, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 // This can be customised via the campaign/settings image upload
 export default function Subscribe() {
@@ -41,17 +42,18 @@ export default function Subscribe() {
 
           <div style={{ padding: '28px 32px' }}>
             <form onSubmit={submit}>
+             
               <div className="field">
                 <label>Your name <span style={{ color: 'var(--rust)' }}>*</span></label>
-                <input required value={form.name} onChange={e => set('name', e.target.value)} placeholder="Ada Okonkwo" />
+                <input required type="text" value={form.name} onChange={e => set('name', e.target.value)}  />
               </div>
               <div className="field">
                 <label>Email address <span style={{ color: 'var(--rust)' }}>*</span></label>
-                <input required type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="ada@example.com" />
+                <input required type="email" value={form.email} onChange={e => set('email', e.target.value)}  />
               </div>
               <div className="field">
-                <label>Phone number <span style={{ color: 'var(--ink4)', fontWeight: 400 }}>(optional)</span></label>
-                <input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="+234 800 000 0000" />
+                <label>Phone number <span style={{ color: 'var(--rust)' }}>*</span></label>
+                <input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)}  />
               </div>
               <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%', justifyContent: 'center', marginTop: 4 }} disabled={status === 'loading'}>
                 {status === 'loading' ? 'Subscribing...' : 'Subscribe'}

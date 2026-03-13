@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
+
 export default function Sidebar({ open, onClose }) {
   const { user, logout, can } = useAuth();
   const navigate = useNavigate();
@@ -40,6 +41,8 @@ export default function Sidebar({ open, onClose }) {
           {navItem('/campaigns', Megaphone, 'Campaigns')}
           {navItem('/compose', Send, 'Compose')}
           {navItem('/logs', Mail, 'Mail Logs')}
+          {navItem('/subscribe', Users, 'Subscribe')}
+         
 
           {can(['admin', 'superadmin']) && (
             <>
