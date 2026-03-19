@@ -2,28 +2,35 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
 import Layout from "./components/Layout";
-import RegisterForm from "./components/RegisterForm";
-import ContactsTable from "./components/ContactsTable";
-import ComposeMails from "./components/ComposeMails";
-import SendMails from "./components/SendMails";
-import Login from "./components/login";
+
+// Auth Pages
+import Login from "./pages/auth/login";
+import Register from "./pages/auth/Register";
+
+// Mail Pages
+import ComposeMail from "./pages/mail/ComposeMail";
+import Contacts from "./pages/mail/Contacts";
+import SendMails from "./pages/mail/SendMails";
 
 function App() {
   return (
     <Router>
       <Routes>
 
-        {/* Pages WITHOUT layout */}
-        <Route path="/register" element={<RegisterForm />} />
+        {/* Public Routes (NO layout) */}
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-        {/* Pages WITH layout */}
+        {/* App Routes (WITH layout) */}
         <Route element={<Layout />}>
+          {/* Default route */}
           <Route path="/" element={<Navigate to="/compose" replace />} />
-          <Route path="/contacts" element={<ContactsTable />} />
-          <Route path="/compose" element={<ComposeMails />} />
+          <Route path="/settings" element={<div>Settings Page</div>} />
+
+          {/* Mail routes */}
+          <Route path="/compose" element={<ComposeMail />} />
+          <Route path="/contacts" element={<Contacts />} />
           <Route path="/send" element={<SendMails />} />
-          <Route path="/login" element={<Login />} />
         </Route>
 
       </Routes>
